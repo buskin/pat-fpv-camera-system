@@ -1,2 +1,0 @@
-test
-This is a test text file I made to make sure everything is working correctly
