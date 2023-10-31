@@ -3,11 +3,11 @@
 
 // all the pin numbers for the buttons and the servos
 const int resetButtonPin = 2;
-const int tiltServoPin = 4;
 const int panServoPin = 3;
+const int tiltServoPin = 4;
 
 const int averageOf = 10; // amount of gyro values it will take the average from
-const int buttonHold = 10; // loop sequinces it needs to go through with the user holding down the button for it to reset
+const int buttonHold = 100; // loop sequinces it needs to go through with the user holding down the button for it to reset
 
 Servo tilt_servo;
 Servo pan_servo;
@@ -37,6 +37,9 @@ float tilt_total = 0; // total of tilt_values so I don't have to calculate it ev
 float pan_total = 0; // total of pan_values so I don't have to calculate it every time
 float tilt_values[averageOf]; // list for figuring out the average of the tilt values and removing the noise
 float pan_values[averageOf]; // list for figuring out the average of the pan values and removing the noise
+
+float tilt_center = 0; // center of the tilt gets assigned when reseting the gyro with the reset button
+float pan_center = 0; // center of the pan gets assigned when reseting the gyro with the reset button
 
 int rounding_value_i = 0; // loops through 0,1,2,3,4... until averageOf to know where to replace the current gyro readings with the old ones in the roll and tilt values list
 int button_count = 0; // variable for counting how much sequences did it loop through with the user holding down the button (activates reset if equals to buttonHold and starts at zero again if you unpress it while the counting)
@@ -107,8 +110,21 @@ void loop() {
   // Roll axis: Z
   // Y - top
 
-  tilt = atan2(ay, az) * 180.0 / PI;
-  pan = gyroZ;
+  // tracks if the user held the button for long enough and if he/she did then the gyro center gets reset
+  int buttonValue = digitalRead(resetButtonPin);
+  if (buttonValue == 0) {
+    if (button_count == buttonHold) {
+      gyroCenter();
+
+      delay(300);
+    }
+    button_count++;
+  } else {
+    button_count = 0;
+  }
+
+  tilt = atan2(ay, az) * 180.0 / PI - tilt_center;
+  pan = gyroZ - pan_center;
   //roll = atan2(-ax, sqrt(ay * ay + az * az)) * 180.0 / PI;
   
   // looping the values if they go out of the -180 to 180 range
@@ -141,8 +157,8 @@ void loop() {
   if(pan_servo_pos < 0) { pan_servo_pos = 0; } else if(pan_servo_pos > 180) { pan_servo_pos = 180; }
 
   // Sending the formated IMU angles to the servos
-  //tilt_servo.write(tilt_servo_pos);
-  //pan_servo.write(pan_servo_pos);
+  tilt_servo.write(tilt_servo_pos);
+  pan_servo.write(pan_servo_pos);
   
   // Print the angles
   if (i % 20 == 0) {
@@ -150,6 +166,8 @@ void loop() {
     Serial.print(rounded_tilt);
     Serial.print(" | PAN: ");
     Serial.print(rounded_pan);
+    Serial.print(" | BUTTON: ");
+    Serial.print(buttonValue);
     Serial.println();
   }
 
@@ -177,4 +195,29 @@ void average() {
 
   rounding_value_i++;
   rounding_value_i = rounding_value_i % averageOf;
+}
+
+void resetArrays() {
+  tilt_total = 0;
+  pan_total = 0;
+  for(int i = 0; i < averageOf; i++){
+    tilt_values[i] = 0;
+    pan_values[i] = 0;
+  }
+  rounded_tilt = 0;
+  rounded_pan = 0;
+}
+
+void gyroCenter(){
+  tilt_center = rounded_tilt + tilt_center;
+  pan_center = rounded_pan + pan_center;
+
+  tilt_servo_pos = 0;
+  pan_servo_pos = 0;
+  i = 0;
+  button_count = 0;
+
+  resetArrays();
+
+  Serial.println("reset");
 }
