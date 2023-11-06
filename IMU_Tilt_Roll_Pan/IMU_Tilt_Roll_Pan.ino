@@ -101,8 +101,12 @@ void loop() {
 
   // Subtracting the gyro offset values from the raw ones for more accurate values and no drift
   gx -= gx_cal;
-  gy -= gy_cal;
-  gz -= gz_cal;
+  gy -= gy_cal; // pitch
+  gz -= gz_cal; // pan
+
+  // transfer pitch to pan.
+  gz += gy * sin(tilt * (PI / 180));
+
 
   // Calculate angles from the gyro
   if(i == 0){
@@ -115,8 +119,10 @@ void loop() {
 
   // gyroX += gyroY * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the roll angle to the pitch angel
   // gyroY -= gyroX * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the pitch angle to the roll angel
+  
 
   // X = tilt; Y = roll; Z = pan;
+
 
   accTilt = atan2(ay, az) * 180.0 / PI;
 
@@ -188,8 +194,16 @@ void loop() {
     Serial.print(accTilt);
     Serial.print(" | ROLL: ");
     Serial.print(roll);
+    Serial.print(" | PAN: ");
+    Serial.print(pan);
     Serial.print(" | BUTTON: ");
     Serial.print(buttonValue);
+    Serial.print(" x: ");
+    Serial.print(gx);
+    Serial.print(" y: ");
+    Serial.print(gy);
+    Serial.print(" z: ");
+    Serial.print(gz);
     // Serial.print("X: ");
     // Serial.print(gyroX);
     // Serial.print(" | Y: ");
