@@ -3,8 +3,10 @@
 
 // all the pin numbers for the buttons and the servos
 const int resetButtonPin = 2;
-const int panServoPin = 3;
-const int tiltServoPin = 4;
+const int panServoPin = 9;
+const int tiltServoPin = 10;
+const bool tiltReverse = true;
+const bool panReverse = false;
 
 const int averageOf = 10; // amount of gyro values it will take the average from
 const int buttonHold = 100; // loop sequinces it needs to go through with the user holding down the button for it to reset
@@ -108,6 +110,8 @@ void loop() {
   gz += gy * sin(tilt * (PI / 180));
 
 
+  accTilt = atan2(ay, az) * 180.0 / PI;
+
   // Calculate angles from the gyro
   if(i == 0){
     gyroX = accTilt;
@@ -122,7 +126,6 @@ void loop() {
   
 
   // X = tilt; Y = roll; Z = pan;
-
 
   accTilt = atan2(ay, az) * 180.0 / PI;
 
@@ -149,7 +152,7 @@ void loop() {
   //float acc_total_vector = sqrt((ax*ax)+(ay*ay)+(az*az));
   //tilt = asin((float)ay/acc_total_vector)* 57.296;
   
-  tilt = gyroX * 0.9996 + accTilt * 0.0004;
+  tilt = gyroX * 0.9996 + accTilt * 0.0004 - tilt_center;
 
   pan = gyroZ - pan_center;
   //roll = asin((float)ax/acc_total_vector)* -57.296;
@@ -177,12 +180,19 @@ void loop() {
 
   average();                                                                  // Smoothing out the tilt and pan values
 
-  tilt_servo_pos = /*rounded_*/tilt + 90;
-  pan_servo_pos = /*rounded_*/pan + 90;
+  tilt_servo_pos = rounded_tilt + 90;
+  pan_servo_pos = rounded_pan + 90;
 
   // Setting the range for the servo
   if(tilt_servo_pos < 0) { tilt_servo_pos = 0; } else if(tilt_servo_pos > 180) { tilt_servo_pos = 180; }
   if(pan_servo_pos < 0) { pan_servo_pos = 0; } else if(pan_servo_pos > 180) { pan_servo_pos = 180; }
+
+  if(tiltReverse){
+    tilt_servo_pos = map(tilt_servo_pos, 0, 180, 180, 0);
+  }
+  if(panReverse){
+    pan_servo_pos = map(pan_servo_pos, 0, 180, 180, 0);
+  }
 
   // Sending the formated IMU angles to the servos
   tilt_servo.write(tilt_servo_pos);
@@ -204,6 +214,12 @@ void loop() {
     Serial.print(gy);
     Serial.print(" z: ");
     Serial.print(gz);
+    // Serial.print("TILT: ");
+    // Serial.print(rounded_tilt);
+    // Serial.print(" | ROLL: ");
+    Serial.print(rounded_pan);
+    // Serial.print(" | BUTTON: ");
+    // Serial.print(buttonValue);
     // Serial.print("X: ");
     // Serial.print(gyroX);
     // Serial.print(" | Y: ");
@@ -211,7 +227,7 @@ void loop() {
     // Serial.print(" | Z: ");
     // Serial.print(gyroZ);
     Serial.println();
-  }
+  //}
 
   i++;                                                                        // add the loop index
 }
