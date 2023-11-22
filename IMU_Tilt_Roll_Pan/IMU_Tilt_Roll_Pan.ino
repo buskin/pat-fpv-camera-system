@@ -25,14 +25,15 @@ float ax, ay, az;
 
 // angles based on gyro outputs and time calculations
 float gyroX = 0.0;
-float gyroY = 0.0;
+//float gyroY = 0.0;
 float gyroZ = 0.0;
 
 float accTilt;
+//float accRoll;
 
 // calculated angles using the gyro and accelerometer angle values (with plane axis names)
 float tilt = 0;
-float roll = 0;
+//float roll = 0;
 float pan = 0;
 
 float rounded_tilt;
@@ -67,6 +68,7 @@ void setup() {
     while (1);
   }
 
+  Serial.println();
   Serial.println("Beginning Calibration. Keep head tracker stationary");      // Print out this text
   delay(2000);                                                                // Give the user time to read the message
   Serial.print("Calibrating");                                                // Print out this text
@@ -102,22 +104,29 @@ void loop() {
   IMU.readAcceleration(ax, ay, az);
 
   // Subtracting the gyro offset values from the raw ones for more accurate values and no drift
-  gx -= gx_cal;
-  gy -= gy_cal; // pitch
+  gx -= gx_cal; // tilt
+  gy -= gy_cal; // roll
   gz -= gz_cal; // pan
 
   // transfer pitch to pan.
-  gz += gy * sin(tilt * (PI / 180));
-
+  //if (rounded_tilt + tilt_center < 90 && rounded_tilt + tilt_center > -90) {
+    //gz -= gy * sin((rounded_tilt + tilt_center) * (PI / 180));
+  //} else {
+    //gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
+  //}
+  gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
+  gy += gz * sin((rounded_tilt + tilt_center) * (PI / 180));
+  //gy -= gz * sin((rounded_tilt + tilt_center) * (PI / 180));
 
   accTilt = atan2(ay, az) * 180.0 / PI;
+  //accRoll = atan2(-ax, sqrt(ay * ay + az * az)) * 180.0 / PI;
 
   // Calculate angles from the gyro
   if(i == 0){
     gyroX = accTilt;
   } else {
     gyroX += gx * elapsedTime;                                                // Integrate angular velocity to get angle
-    gyroY += gy * elapsedTime;                                                  // Integrate angular velocity to get angle
+    //gyroY += gy * elapsedTime;                                                  // Integrate angular velocity to get angle
     gyroZ += gz * elapsedTime;                                                // Integrate angular velocity to get angle
   }
 
@@ -126,8 +135,6 @@ void loop() {
   
 
   // X = tilt; Y = roll; Z = pan;
-
-  accTilt = atan2(ay, az) * 180.0 / PI;
 
   // Y points UP
   // Z points FORWARD
@@ -153,10 +160,10 @@ void loop() {
   //tilt = asin((float)ay/acc_total_vector)* 57.296;
   
   tilt = gyroX * 0.9996 + accTilt * 0.0004 - tilt_center;
-
+  //roll = gyroY * 0.9996 + accRoll * 0.0004 - roll_center;
   pan = gyroZ - pan_center;
   //roll = asin((float)ax/acc_total_vector)* -57.296;
-  roll = atan2(-ax, sqrt(ay * ay + az * az)) * 180.0 / PI;
+  //roll = atan2(-ax, sqrt(ay * ay + az * az)) * 180.0 / PI;
 
   // looping the values if they go out of the -180 to 180 range
   while(true){
@@ -180,12 +187,15 @@ void loop() {
 
   average();                                                                  // Smoothing out the tilt and pan values
 
-  tilt_servo_pos = rounded_tilt + 90;
-  pan_servo_pos = rounded_pan + 90;
+  tilt_servo_pos = rounded_tilt;
+  pan_servo_pos = rounded_pan;
 
   // Setting the range for the servo
-  if(tilt_servo_pos < 0) { tilt_servo_pos = 0; } else if(tilt_servo_pos > 180) { tilt_servo_pos = 180; }
-  if(pan_servo_pos < 0) { pan_servo_pos = 0; } else if(pan_servo_pos > 180) { pan_servo_pos = 180; }
+  if(tilt_servo_pos < -85) { tilt_servo_pos = -85; } else if(tilt_servo_pos > 85) { tilt_servo_pos = 85; }
+  if(pan_servo_pos < -85) { pan_servo_pos = -85; } else if(pan_servo_pos > 85) { pan_servo_pos = 85; }
+
+  tilt_servo_pos += 90;
+  pan_servo_pos += 90;
 
   if(tiltReverse){
     tilt_servo_pos = map(tilt_servo_pos, 0, 180, 180, 0);
@@ -196,28 +206,31 @@ void loop() {
 
   // Sending the formated IMU angles to the servos
   tilt_servo.write(tilt_servo_pos);
+  //if(i == 0){
+  //tilt_servo.write(90);
+  //}
   pan_servo.write(pan_servo_pos);
   
   // Print the angles
   if (i % 20 == 0) {
     Serial.print("TILT: ");
-    Serial.print(accTilt);
-    Serial.print(" | ROLL: ");
-    Serial.print(roll);
+    Serial.print(tilt_servo_pos);
+    // Serial.print(" | ROLL: ");
+    // Serial.print(roll);
     Serial.print(" | PAN: ");
-    Serial.print(pan);
-    Serial.print(" | BUTTON: ");
-    Serial.print(buttonValue);
-    Serial.print(" x: ");
-    Serial.print(gx);
-    Serial.print(" y: ");
-    Serial.print(gy);
-    Serial.print(" z: ");
-    Serial.print(gz);
+    Serial.print(rounded_pan);
+    //Serial.print(" | BUTTON: ");
+    //Serial.print(buttonValue);
+    //Serial.print(" x: ");
+    //Serial.print(gx);
+    //Serial.print(" y: ");
+    //Serial.print(gy);
+    //Serial.print(" z: ");
+    //Serial.print(gz);
     // Serial.print("TILT: ");
     // Serial.print(rounded_tilt);
     // Serial.print(" | ROLL: ");
-    Serial.print(rounded_pan);
+    //Serial.print(rounded_pan);
     // Serial.print(" | BUTTON: ");
     // Serial.print(buttonValue);
     // Serial.print("X: ");
@@ -227,7 +240,7 @@ void loop() {
     // Serial.print(" | Z: ");
     // Serial.print(gyroZ);
     Serial.println();
-  //}
+  }
 
   i++;                                                                        // add the loop index
 }
