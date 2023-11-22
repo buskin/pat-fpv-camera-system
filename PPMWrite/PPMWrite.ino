@@ -13,26 +13,30 @@
 // 40 times per second 40 HZ
 const int FRAME_TIME = 20000;
 
-int ppmValues[NUM_CHANNELS];
 
 // calculate max time we need to send 8 channels with 2000 value each and 5000 sync pulse
 // TIME = 5000 + (2000 + 500) * 8 = 25000
 
 int frame_time_left;
 
+PPMEncoder2 ppmEncoder;
+
 void setup() {
   Serial.begin(9600);
   while (!Serial);
 
-  //pinMode(OUT_PIN, OUTPUT);    // sets the digital pin OUT_PIN as output
-  ppmEncoder.begin(OUT_PIN, 6, true);
+  // ppmEncoder.begin(OUT_PIN, 6, true);
+  pinMode(OUT_PIN, OUTPUT);
 }
 
 void loop() {
-  ppmEncoder.setChannel(0, 1000);
-  ppmEncoder.setChannel(1, 1100);
-  ppmEncoder.setChannel(2, 1200);
-  ppmEncoder.setChannel(3, 1300);
-  ppmEncoder.setChannel(4, 1700);
-  ppmEncoder.setChannel(5, 1900);
+  // ppmEncoder.setChannel(0, 1000);
+  // ppmEncoder.setChannel(1, 1100);
+  // ppmEncoder.setChannel(2, 1200);
+  // ppmEncoder.setChannel(3, 1300);
+  // ppmEncoder.setChannel(4, 1700);
+  // ppmEncoder.setChannel(5, 1900);
+
+  // ppmEncoder.interrupt();
+  Serial.println(micros());
 }
