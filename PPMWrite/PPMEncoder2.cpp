@@ -1,5 +1,7 @@
 #include "PPMEncoder2.h"
 
+#define DEBUG false
+
 void PPMEncoder2::begin(uint8_t pin, uint8_t ch, bool inverted) {
   if (!inverted) {
     onState = HIGH;
@@ -26,9 +28,9 @@ void PPMEncoder2::setChannel(uint8_t channel, uint16_t value) {
 
 void PPMEncoder2::enable() {
   enabled = true;
-  state = true;
-  time_frame_started = micros();
-  time_chill_till = 0;
+  isSpace = false;
+  time_frame_started = mstime();
+  time_chill_till = mstime();
   currentChannel = 0;
   digitalWrite(outputPin, offState);
 }
@@ -37,8 +39,22 @@ void PPMEncoder2::disable() {
   enabled = false;
 }
 
+long PPMEncoder2::mstime() {
+  if (DEBUG) 
+    return millis();
+  else
+    return micros();
+}
+
+
 void PPMEncoder2::interrupt() {
-  int now = micros();
+  long now = mstime();
+  // Serial.print("_");
+  // Serial.print(now);
+  // Serial.print(" ");
+  // Serial.print(time_chill_till);
+  // Serial.println();
+
   if (!enabled) {
     return;
   }
@@ -47,37 +63,42 @@ void PPMEncoder2::interrupt() {
     // we wait till that time
     return;
   }
+  bool debugPrint = DEBUG;
 
   // delay after pulse
-  if (state) {
+  if (isSpace) {
     digitalWrite(outputPin, offState);
     time_chill_till = now + PPM_PULSE_LENGTH_uS;
-    Serial.print(" LO-");
-    Serial.print(PPM_PULSE_LENGTH_uS);
-  } else {
-    digitalWrite(outputPin, onState);
-    // we've sent all pulses, send SYNC pulse
-    if (currentChannel >= numChannels) {
-      currentChannel = 0;
-      // we wait till next frame - pulse length (time to stop signal for signal separations)
-      int time_chill_till_prev = time_chill_till;
-      time_chill_till = time_frame_started + PPM_FRAME_LENGTH_uS - PPM_PULSE_LENGTH_uS;
-      // next frame starting exactly in PPM_FRAME_LENGTH_uS;
-      time_frame_started = time_frame_started + PPM_FRAME_LENGTH_uS;
-      Serial.print(" HI-");
-      Serial.print(time_chill_till - time_chill_till_prev);
-      Serial.println();
+    if (debugPrint) {
+      Serial.print(" LO-");
+      Serial.print(PPM_PULSE_LENGTH_uS);
     }
-    // we sent current channel, time to send next channel
-    else
-    {
+  } else {
+    if (currentChannel == 0) {
+      time_frame_started = now;
+      if (debugPrint) {
+        Serial.println();
+      }
+    }
+    digitalWrite(outputPin, onState);
+    if (currentChannel < numChannels) {
       time_chill_till = now + channels[currentChannel];
+      if (debugPrint) {
+        Serial.print(" HI-");
+        Serial.print(channels[currentChannel]);
+      }
       currentChannel++;
-      Serial.print(" HI-");
-      Serial.print(channels[currentChannel]);
+    } else {
+      long time_chill_till_prev = time_chill_till;
+      time_chill_till = time_frame_started + PPM_FRAME_LENGTH_uS - PPM_PULSE_LENGTH_uS;
+      if (debugPrint) {
+        Serial.print(" HSYNC-");
+        Serial.print(time_chill_till - time_chill_till_prev);
+      }
+      currentChannel = 0;
     }
   }
 
   // this is a switch between
-  state = !state;
+  isSpace = !isSpace;
 }

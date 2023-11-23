@@ -25,18 +25,19 @@ void setup() {
   Serial.begin(9600);
   while (!Serial);
 
-  // ppmEncoder.begin(OUT_PIN, 6, true);
+  ppmEncoder.begin(OUT_PIN, 6, true);
   pinMode(OUT_PIN, OUTPUT);
 }
 
 void loop() {
-  // ppmEncoder.setChannel(0, 1000);
-  // ppmEncoder.setChannel(1, 1100);
-  // ppmEncoder.setChannel(2, 1200);
-  // ppmEncoder.setChannel(3, 1300);
-  // ppmEncoder.setChannel(4, 1700);
-  // ppmEncoder.setChannel(5, 1900);
+  ppmEncoder.setChannel(0, 1000);
+  ppmEncoder.setChannel(1, 1000);
+  ppmEncoder.setChannel(2, 1000);
+  ppmEncoder.setChannel(3, 1000);
+  ppmEncoder.setChannel(4, 1000);
+  ppmEncoder.setChannel(5, 1000);
 
-  // ppmEncoder.interrupt();
-  Serial.println(micros());
+  ppmEncoder.interrupt();
+  // Serial.println(micros());
+  // delay(100);
 }
