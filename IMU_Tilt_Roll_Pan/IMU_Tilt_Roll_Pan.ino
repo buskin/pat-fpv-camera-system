@@ -114,8 +114,7 @@ void loop() {
   //} else {
     //gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
   //}
-  gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
-  gy += gz * sin((rounded_tilt + tilt_center) * (PI / 180));
+  //gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
   //gy -= gz * sin((rounded_tilt + tilt_center) * (PI / 180));
 
   accTilt = atan2(ay, az) * 180.0 / PI;
@@ -125,10 +124,11 @@ void loop() {
   if(i == 0){
     gyroX = accTilt;
   } else {
-    gyroX += gx * elapsedTime;                                                // Integrate angular velocity to get angle
+    gyroX -= gx * elapsedTime;                                                // Integrate angular velocity to get angle
     //gyroY += gy * elapsedTime;                                                  // Integrate angular velocity to get angle
-    gyroZ += gz * elapsedTime;                                                // Integrate angular velocity to get angle
   }
+
+  gyroZ -= gz * elapsedTime;                                                  // Integrate angular velocity to get angle
 
   // gyroX += gyroY * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the roll angle to the pitch angel
   // gyroY -= gyroX * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the pitch angle to the roll angel
@@ -213,12 +213,14 @@ void loop() {
   
   // Print the angles
   if (i % 20 == 0) {
-    Serial.print("TILT: ");
-    Serial.print(tilt_servo_pos);
-    // Serial.print(" | ROLL: ");
-    // Serial.print(roll);
+    Serial.print("GYRO TILT: ");
+    Serial.print(gyroX);
+    Serial.print(" | ACC TILT: ");
+    Serial.print(accTilt);
+    Serial.print(" | TILT: ");
+    Serial.print(rounded_tilt);
     Serial.print(" | PAN: ");
-    Serial.print(rounded_pan);
+    Serial.print(pan_servo_pos);
     //Serial.print(" | BUTTON: ");
     //Serial.print(buttonValue);
     //Serial.print(" x: ");

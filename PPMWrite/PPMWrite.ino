@@ -30,12 +30,13 @@ void setup() {
 }
 
 void loop() {
-  ppmEncoder.setChannel(0, 1000);
-  ppmEncoder.setChannel(1, 1000);
-  ppmEncoder.setChannel(2, 1000);
-  ppmEncoder.setChannel(3, 1000);
-  ppmEncoder.setChannel(4, 1000);
-  ppmEncoder.setChannel(5, 1000);
+  //600-1600
+  ppmEncoder.setChannel(0, 1100);
+  ppmEncoder.setChannel(1, 605);
+  ppmEncoder.setChannel(2, 1550);
+  ppmEncoder.setChannel(3, 1600);
+  //ppmEncoder.setChannel(4, 1500);
+  //ppmEncoder.setChannel(5, 900);
 
   ppmEncoder.interrupt();
   // Serial.println(micros());
