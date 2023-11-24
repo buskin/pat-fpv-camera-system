@@ -1,6 +1,18 @@
+#include "api/Print.h"
 #include "PPMEncoder2.h"
-
+#include "NRF52_MBED_TimerInterrupt.h"
 #define DEBUG false
+
+PPMEncoder2 ppmEncoder;
+
+long time_main;
+void TimerHandler0()
+{
+  time_main += 10;
+  if (time_main % 1000000 != 0) return;
+  ppmEncoder.interrupt();
+}
+NRF52_MBED_Timer ITimer(NRF_TIMER_1);
 
 void PPMEncoder2::begin(uint8_t pin, uint8_t ch, bool inverted) {
   if (!inverted) {
@@ -19,6 +31,11 @@ void PPMEncoder2::begin(uint8_t pin, uint8_t ch, bool inverted) {
     setChannel(chn, 1500);
   }
 
+  pinMode(LED_BUILTIN,  OUTPUT);
+
+  // in DEBUG we run 1000 times longer, so instead of 1500 microseconds we will have 1500 milliseconds
+  ITimer.attachInterruptInterval(10 * DEBUG ? 1000 : 1, TimerHandler0);
+
   enable();
 }
 
@@ -29,8 +46,9 @@ void PPMEncoder2::setChannel(uint8_t channel, uint16_t value) {
 void PPMEncoder2::enable() {
   enabled = true;
   isSpace = false;
-  time_frame_started = mstime();
-  time_chill_till = mstime();
+  time_main = 0;
+  time_frame_started = 0;
+  time_chill_till = 0;
   currentChannel = 0;
   digitalWrite(outputPin, offState);
 }
@@ -39,62 +57,41 @@ void PPMEncoder2::disable() {
   enabled = false;
 }
 
-long PPMEncoder2::mstime() {
-  if (DEBUG) 
-    return millis();
-  else
-    return micros();
-}
-
-
 void PPMEncoder2::interrupt() {
-  long now = mstime();
-  // Serial.print("_");
-  // Serial.print(now);
-  // Serial.print(" ");
-  // Serial.print(time_chill_till);
-  // Serial.println();
+  if (time_main < time_chill_till) return;
 
-  if (!enabled) {
-    return;
-  }
-
-  if (time_chill_till > now) {
-    // we wait till that time
-    return;
-  }
-  bool debugPrint = DEBUG;
+  if (!enabled) return;
 
   // delay after pulse
   if (isSpace) {
     digitalWrite(outputPin, offState);
-    time_chill_till = now + PPM_PULSE_LENGTH_uS;
-    if (debugPrint) {
+    time_chill_till = time_main + PPM_PULSE_LENGTH_uS;
+    #if DEBUG
       Serial.print(" LO-");
       Serial.print(PPM_PULSE_LENGTH_uS);
-    }
+    #endif
   } else {
     if (currentChannel == 0) {
-      time_frame_started = now;
-      if (debugPrint) {
+      time_frame_started = time_main;
+      #if DEBUG
         Serial.println();
-      }
+      #endif
     }
     digitalWrite(outputPin, onState);
     if (currentChannel < numChannels) {
-      time_chill_till = now + channels[currentChannel];
-      if (debugPrint) {
+      time_chill_till = time_main + channels[currentChannel];
+      #if DEBUG
         Serial.print(" HI-");
         Serial.print(channels[currentChannel]);
-      }
+      #endif
       currentChannel++;
     } else {
       long time_chill_till_prev = time_chill_till;
       time_chill_till = time_frame_started + PPM_FRAME_LENGTH_uS - PPM_PULSE_LENGTH_uS;
-      if (debugPrint) {
+      #if DEBUG
         Serial.print(" HSYNC-");
         Serial.print(time_chill_till - time_chill_till_prev);
-      }
+      #endif
       currentChannel = 0;
     }
   }
@@ -102,3 +99,4 @@ void PPMEncoder2::interrupt() {
   // this is a switch between
   isSpace = !isSpace;
 }
+

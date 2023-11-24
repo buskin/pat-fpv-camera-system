@@ -1,3 +1,7 @@
+#ifndef PPMEncoder2_h
+#define PPMEncoder2_h
+
+
 #include "Arduino.h"
 
 #define PPM_DEFAULT_CHANNELS 12
@@ -28,3 +32,6 @@ private:
   uint8_t onState;
   uint8_t offState;
 };
+
+extern PPMEncoder2 ppmEncoder;
+#endif

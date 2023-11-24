@@ -17,9 +17,10 @@ const int FRAME_TIME = 20000;
 // calculate max time we need to send 8 channels with 2000 value each and 5000 sync pulse
 // TIME = 5000 + (2000 + 500) * 8 = 25000
 
+
+
 int frame_time_left;
 
-PPMEncoder2 ppmEncoder;
 
 void setup() {
   Serial.begin(9600);
@@ -27,6 +28,8 @@ void setup() {
 
   ppmEncoder.begin(OUT_PIN, 6, true);
   pinMode(OUT_PIN, OUTPUT);
+
+  
 }
 
 void loop() {
