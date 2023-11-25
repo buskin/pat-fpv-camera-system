@@ -18,6 +18,7 @@ public:
   void enable();
   void disable();
   void interrupt();
+  void write();
 
 private:
   long mstime();
@@ -25,7 +26,7 @@ private:
   bool enabled;
   bool isSpace;
   long time_frame_started;
-  long time_chill_till;
+  //long time_chill_till;
   uint8_t currentChannel;
   uint8_t numChannels;
   uint16_t channels[PPM_DEFAULT_CHANNELS];
