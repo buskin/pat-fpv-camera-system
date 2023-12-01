@@ -10,8 +10,9 @@ const int panServoPin = 11;
 const int tiltServoPin = 10;
 const bool tiltReverse = false;
 const bool panReverse = true;
-const float tiltGain = 1;
-const float panGain = 1;
+const float tiltGain = 2.5;
+const float panGain = 2.5;
+const int calibratingSamples = 600;
 
 const int averageOf = 10; // amount of gyro values it will take the average from
 const int buttonHold = 40; // loop sequinces it needs to go through with the user holding down the button for it to reset
@@ -71,20 +72,20 @@ void setup() {
   Serial.begin(9600);
   while (!Serial);
 
-  ppmEncoder.begin(OUT_PIN, 6, true);
-  pinMode(OUT_PIN, OUTPUT);
-
   if (!IMU.begin()) {
     Serial.println("Failed to initialize LSM9DS1 sensor!");
     while (1);
   }
+
+  ppmEncoder.begin(OUT_PIN, 6, true);
+  pinMode(OUT_PIN, OUTPUT);
 
   Serial.println();
   Serial.println("Beginning Calibration. Keep head tracker stationary");      // Print out this text
   delay(2000);                                                                // Give the user time to read the message
   Serial.print("Calibrating");                                                // Print out this text
   int cal_int = 0;
-  while (cal_int < 600) {
+  while (cal_int < calibratingSamples) {
     if (!IMU.gyroscopeAvailable()) continue;
     if (cal_int % 200 == 0) Serial.print(".");                                // Print a dot on the LCD every 200 readings
     IMU.readGyroscope(gx, gy, gz);                                            // Read the raw gyro data from the IMU
@@ -96,9 +97,9 @@ void setup() {
   Serial.println();
 
   // Divide the gyro calibration values by 2000 to get the avarage offset
-  gx_cal /= 1000;
-  gy_cal /= 1000;
-  gz_cal /= 1000;
+  gx_cal /= calibratingSamples;
+  gy_cal /= calibratingSamples;
+  gz_cal /= calibratingSamples;
 }
 
 void loop() {
@@ -222,48 +223,48 @@ void loop() {
   // //}
   //pan_servo.write(90);
   
-  ppm_tilt = map(tilt_servo_pos, 0, 180, 600, 1600);
+  ppm_tilt = map(tilt_servo_pos, 5, 175, 600, 1600);
   ppm_pan = map(pan_servo_pos, 0, 180, 600, 1600);
 
   // Yellow : Ring 3 : Ground : Center
   // Green : Tip : PPM IN : Left
   // Green Red : Ring 2 : PPM OUT : Right
 
-  ppmEncoder.setChannel(0, ppm_tilt);
-  ppmEncoder.setChannel(1, ppm_pan);
+  ppmEncoder.setChannel(0, ppm_pan);
+  ppmEncoder.setChannel(1, ppm_tilt);
 
   // Print the angles
-  if (i % 20 == 0) {
-    Serial.print("GYRO TILT: ");
-    Serial.print(gyroX);
-    Serial.print(" | ACC TILT: ");
-    Serial.print(accTilt);
-    Serial.print(" | TILT: ");
-    Serial.print(rounded_tilt);
-    Serial.print(" | PAN: ");
-    Serial.print(pan_servo_pos);
-    //Serial.print(" | BUTTON: ");
-    //Serial.print(buttonValue);
-    //Serial.print(" x: ");
-    //Serial.print(gx);
-    //Serial.print(" y: ");
-    //Serial.print(gy);
-    //Serial.print(" z: ");
-    //Serial.print(gz);
-    // Serial.print("TILT: ");
-    // Serial.print(rounded_tilt);
-    // Serial.print(" | ROLL: ");
-    //Serial.print(rounded_pan);
-    Serial.print(" | BUTTON: ");
-    Serial.print(buttonValue);
-    // Serial.print("X: ");
-    // Serial.print(gyroX);
-    // Serial.print(" | Y: ");
-    // Serial.print(gyroY);
-    // Serial.print(" | Z: ");
-    // Serial.print(gyroZ);
-    Serial.println();
-  }
+  // if (i % 20 == 0) {
+  //   Serial.print("GYRO TILT: ");
+  //   Serial.print(gyroX);
+  //   Serial.print(" | ACC TILT: ");
+  //   Serial.print(accTilt);
+  //   Serial.print(" | TILT: ");
+  //   Serial.print(rounded_tilt);
+  //   Serial.print(" | PAN: ");
+  //   Serial.print(pan_servo_pos);
+  //   //Serial.print(" | BUTTON: ");
+  //   //Serial.print(buttonValue);
+  //   //Serial.print(" x: ");
+  //   //Serial.print(gx);
+  //   //Serial.print(" y: ");
+  //   //Serial.print(gy);
+  //   //Serial.print(" z: ");
+  //   //Serial.print(gz);
+  //   // Serial.print("TILT: ");
+  //   // Serial.print(rounded_tilt);
+  //   // Serial.print(" | ROLL: ");
+  //   //Serial.print(rounded_pan);
+  //   Serial.print(" | BUTTON: ");
+  //   Serial.print(buttonValue);
+  //   // Serial.print("X: ");
+  //   // Serial.print(gyroX);
+  //   // Serial.print(" | Y: ");
+  //   // Serial.print(gyroY);
+  //   // Serial.print(" | Z: ");
+  //   // Serial.print(gyroZ);
+  //   Serial.println();
+  // }
 
   i++;                                                                        // add the loop index
 }
