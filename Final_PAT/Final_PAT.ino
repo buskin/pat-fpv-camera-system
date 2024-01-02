@@ -19,17 +19,15 @@ const int buttonHold = 40; // loop sequinces it needs to go through with the use
 
 Servo tilt_servo;
 Servo pan_servo;
-float tilt_servo_pos = 0;
-float pan_servo_pos = 0;
+float tilt_servo_pos = 0; // tilt servo position value
+float pan_servo_pos = 0; // pan servo position value
 
-// gyroscope output values
-float gx, gy, gz;
-float gx_cal, gy_cal, gz_cal;
+float gx, gy, gz; // gyroscope output values
+float gx_cal, gy_cal, gz_cal; // gyroscope calibration values to remove the drift
 
-// accelerometer output values
-float ax, ay, az;
+float ax, ay, az; // accelerometer output values
 
-// angles based on gyro outputs and time calculations
+// angles based on gyro outputs (gyroscope values are added along with a consideration of elapsed_time)
 float gyroX = 0.0;
 //float gyroY = 0.0;
 float gyroZ = 0.0;
@@ -42,8 +40,8 @@ float tilt = 0;
 //float roll = 0;
 float pan = 0;
 
-float rounded_tilt;
-float rounded_pan;
+float rounded_tilt; // tilt formatted with averages
+float rounded_pan; // pan formatted with averages
 
 float ppm_tilt = 1100;
 float ppm_pan = 1100;
@@ -80,6 +78,7 @@ void setup() {
   ppmEncoder.begin(OUT_PIN, 6, true);
   pinMode(OUT_PIN, OUTPUT);
 
+  // Calibrating the gyroscope offset error value and subtracting it from the gyro output every loop sequence to reduce drift
   Serial.println();
   Serial.println("Beginning Calibration. Keep head tracker stationary");      // Print out this text
   delay(2000);                                                                // Give the user time to read the message
@@ -108,7 +107,6 @@ void loop() {
   // Calculate time since the last loop execution
   unsigned long currentTime = micros();
   float elapsedTime = (currentTime - previousTime) / 1000000.0;               // Convert to seconds
-  //wait(100);
   previousTime = currentTime;                                                 // Setting the previous Time to the current
 
   // Read gyroscope and accelerometer data
@@ -121,23 +119,16 @@ void loop() {
   gz -= gz_cal; // pan
 
   // transfer pitch to pan.
-  //if (rounded_tilt + tilt_center < 90 && rounded_tilt + tilt_center > -90) {
-    //gz -= gy * sin((rounded_tilt + tilt_center) * (PI / 180));
-  //} else {
-    //gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
-  //}
   //gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
   //gy -= gz * sin((rounded_tilt + tilt_center) * (PI / 180));
 
   accTilt = atan2(ay, az) * 180.0 / PI;
-  //accRoll = atan2(-ax, sqrt(ay * ay + az * az)) * 180.0 / PI;
 
   // Calculate angles from the gyro
   if(i == 0){
     gyroX = accTilt;
   } else {
     gyroX -= gx * elapsedTime;                                                // Integrate angular velocity to get angle
-    //gyroY += gy * elapsedTime;                                                  // Integrate angular velocity to get angle
   }
 
   gyroZ -= gz * elapsedTime;                                                  // Integrate angular velocity to get angle
@@ -166,18 +157,12 @@ void loop() {
   } else {
     button_count = 0;
   }
-
-  //tilt = atan2(ay, az) * 180.0 / PI - tilt_center;
-  //float acc_total_vector = sqrt((ax*ax)+(ay*ay)+(az*az));
-  //tilt = asin((float)ay/acc_total_vector)* 57.296;
   
   tilt = gyroX * 0.9996 + accTilt * 0.0004 - tilt_center;
   //roll = gyroY * 0.9996 + accRoll * 0.0004 - roll_center;
   pan = gyroZ - pan_center;
-  //roll = asin((float)ax/acc_total_vector)* -57.296;
-  //roll = atan2(-ax, sqrt(ay * ay + az * az)) * 180.0 / PI;
 
-  // looping the values if they go out of the -180 to 180 range
+  // keeping the tilt value in the -180 to 180 range
   while(true){
     if(tilt < -180) {
       tilt += 360;
@@ -187,6 +172,7 @@ void loop() {
       break;
     }
   }
+  // keeping the pan value in the -180 to 180 range
   while(true){
     if(pan < -180) {
       pan += 360;
@@ -199,16 +185,14 @@ void loop() {
 
   average();                                                                  // Smoothing out the tilt and pan values
 
-  tilt_servo_pos = rounded_tilt * tiltGain;
-  pan_servo_pos = rounded_pan * panGain;
+  tilt_servo_pos = rounded_tilt * tiltGain + 90;                              // Multiplying the tilt by the gain (the servo's sensitivity and how much it will turn in comparison to your head) and adding 90 to make the value from 0 to 180
+  pan_servo_pos = rounded_pan * panGain + 90;                                 // Multiplying the pan by the gain (the servo's sensitivity and how much it will turn in comparison to your head) and adding 90 to make the value from 0 to 180
 
-  // Setting the range for the servo
-  if(tilt_servo_pos < -85) { tilt_servo_pos = -85; } else if(tilt_servo_pos > 85) { tilt_servo_pos = 85; }
-  if(pan_servo_pos < -90) { pan_servo_pos = -90; } else if(pan_servo_pos > 90) { pan_servo_pos = 90; }
+  // Setting the ranges for the servo
+  if(tilt_servo_pos < 5) { tilt_servo_pos = 5; } else if(tilt_servo_pos > 175) { tilt_servo_pos = 175; }
+  if(pan_servo_pos < 0) { pan_servo_pos = 0; } else if(pan_servo_pos > 180) { pan_servo_pos = 180; }
 
-  tilt_servo_pos += 90;
-  pan_servo_pos += 90;
-
+  // Reversing the values if needed
   if(tiltReverse){
     tilt_servo_pos = map(tilt_servo_pos, 0, 180, 180, 0);
   }
@@ -223,6 +207,7 @@ void loop() {
   // //}
   //pan_servo.write(90);
   
+  // Making the values readable to the transmitter by setting them to a specific range
   ppm_tilt = map(tilt_servo_pos, 5, 175, 600, 1600);
   ppm_pan = map(pan_servo_pos, 0, 180, 600, 1600);
 
@@ -230,10 +215,11 @@ void loop() {
   // Green : Tip : PPM IN : Left
   // Green Red : Ring 2 : PPM OUT : Right
 
+  // Sending the formated IMU angles as PPM values to the flysky transmitter
   ppmEncoder.setChannel(0, ppm_pan);
   ppmEncoder.setChannel(1, ppm_tilt);
 
-  // Print the angles
+  // Debugging by printing the angles out
   // if (i % 20 == 0) {
   //   Serial.print("GYRO TILT: ");
   //   Serial.print(gyroX);
