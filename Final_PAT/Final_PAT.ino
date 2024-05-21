@@ -9,9 +9,9 @@ const int resetButtonPin = 6;
 const int panServoPin = 11;
 const int tiltServoPin = 10;
 const bool tiltReverse = false;
-const bool panReverse = true;
-const float tiltGain = 2.5;
-const float panGain = 2.5;
+const bool panReverse = false;
+const float tiltGain = 1;
+const float panGain = 1;
 const int calibratingSamples = 600;
 
 const int averageOf = 10; // amount of gyro values it will take the average from
@@ -68,7 +68,7 @@ void setup() {
   pan_servo.attach(panServoPin);
 
   Serial.begin(9600);
-  while (!Serial);
+  //while (!Serial);
 
   if (!IMU.begin()) {
     Serial.println("Failed to initialize LSM9DS1 sensor!");
@@ -160,7 +160,7 @@ void loop() {
   
   tilt = gyroX * 0.9996 + accTilt * 0.0004 - tilt_center;
   //roll = gyroY * 0.9996 + accRoll * 0.0004 - roll_center;
-  pan = gyroZ - pan_center;
+  pan = gyroZ - pan_center; 
 
   // keeping the tilt value in the -180 to 180 range
   while(true){
@@ -185,10 +185,10 @@ void loop() {
 
   average();                                                                  // Smoothing out the tilt and pan values
 
-  tilt_servo_pos = rounded_tilt * tiltGain + 90;                              // Multiplying the tilt by the gain (the servo's sensitivity and how much it will turn in comparison to your head) and adding 90 to make the value from 0 to 180
-  pan_servo_pos = rounded_pan * panGain + 90;                                 // Multiplying the pan by the gain (the servo's sensitivity and how much it will turn in comparison to your head) and adding 90 to make the value from 0 to 180
+  tilt_servo_pos = rounded_tilt * tiltGain + 90;                              // Multiplying the tilt by the gain (the servo's sensitivity and how much it will turn in comparison to your head) and adding 90 to make it the center
+  pan_servo_pos = rounded_pan * panGain + 90;                                 // Multiplying the pan by the gain (the servo's sensitivity and how much it will turn in comparison to your head) and adding 90 to make it the center
 
-  // Setting the ranges for the servo
+  // Setting the ranges for the servo. 170 on the tilt. 180 on the pan
   if(tilt_servo_pos < 5) { tilt_servo_pos = 5; } else if(tilt_servo_pos > 175) { tilt_servo_pos = 175; }
   if(pan_servo_pos < 0) { pan_servo_pos = 0; } else if(pan_servo_pos > 180) { pan_servo_pos = 180; }
 
@@ -220,15 +220,17 @@ void loop() {
   ppmEncoder.setChannel(1, ppm_tilt);
 
   // Debugging by printing the angles out
-  // if (i % 20 == 0) {
+  if (i % 20 == 0) {
   //   Serial.print("GYRO TILT: ");
   //   Serial.print(gyroX);
   //   Serial.print(" | ACC TILT: ");
   //   Serial.print(accTilt);
   //   Serial.print(" | TILT: ");
   //   Serial.print(rounded_tilt);
-  //   Serial.print(" | PAN: ");
-  //   Serial.print(pan_servo_pos);
+    Serial.print("TILT: ");
+    Serial.print(tilt_servo_pos);
+    Serial.print(" | PAN: ");
+    Serial.print(pan_servo_pos);
   //   //Serial.print(" | BUTTON: ");
   //   //Serial.print(buttonValue);
   //   //Serial.print(" x: ");
@@ -249,8 +251,8 @@ void loop() {
   //   // Serial.print(gyroY);
   //   // Serial.print(" | Z: ");
   //   // Serial.print(gyroZ);
-  //   Serial.println();
-  // }
+    Serial.println();
+  }
 
   i++;                                                                        // add the loop index
 }
