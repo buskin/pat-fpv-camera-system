@@ -10,12 +10,12 @@ const int panServoPin = 11;
 const int tiltServoPin = 10;
 const bool tiltReverse = false;
 const bool panReverse = false;
-const float tiltGain = 1;
-const float panGain = 1;
+const float tiltGain = 1.8;
+const float panGain = 1.5;
 const int calibratingSamples = 600;
 
 const int averageOf = 10; // amount of gyro values it will take the average from
-const int buttonHold = 40; // loop sequinces it needs to go through with the user holding down the button for it to reset
+const int buttonHold = 40; // loop sequences it needs to go through with the user holding down the button for it to reset
 
 Servo tilt_servo;
 Servo pan_servo;
@@ -29,15 +29,12 @@ float ax, ay, az; // accelerometer output values
 
 // angles based on gyro outputs (gyroscope values are added along with a consideration of elapsed_time)
 float gyroX = 0.0;
-//float gyroY = 0.0;
 float gyroZ = 0.0;
 
 float accTilt;
-//float accRoll;
 
 // calculated angles using the gyro and accelerometer angle values (with plane axis names)
 float tilt = 0;
-//float roll = 0;
 float pan = 0;
 
 float rounded_tilt; // tilt formatted with averages
@@ -55,7 +52,7 @@ float tilt_center = 0; // center of the tilt gets assigned when reseting the gyr
 float pan_center = 0; // center of the pan gets assigned when reseting the gyro with the reset button
 
 int rounding_value_i = 0; // loops through 0,1,2,3,4... until averageOf to know where to replace the current gyro readings with the old ones in the roll and tilt values list
-int button_count = 0; // variable for counting how much sequences did it loop through with the user holding down the button (activates reset if equals to buttonHold and starts at zero again if you unpress it while the counting)
+int button_count = 0; // counts sequences button was down
 
 long i = 0;
 
@@ -68,7 +65,6 @@ void setup() {
   pan_servo.attach(panServoPin);
 
   Serial.begin(9600);
-  //while (!Serial);
 
   if (!IMU.begin()) {
     Serial.println("Failed to initialize LSM9DS1 sensor!");
@@ -119,8 +115,7 @@ void loop() {
   gz -= gz_cal; // pan
 
   // transfer pitch to pan.
-  //gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
-  //gy -= gz * sin((rounded_tilt + tilt_center) * (PI / 180));
+  gz += gy * sin((rounded_tilt + tilt_center) * (PI / 180));
 
   accTilt = atan2(ay, az) * 180.0 / PI;
 
@@ -130,22 +125,11 @@ void loop() {
   } else {
     gyroX -= gx * elapsedTime;                                                // Integrate angular velocity to get angle
   }
-
   gyroZ -= gz * elapsedTime;                                                  // Integrate angular velocity to get angle
-
-  // gyroX += gyroY * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the roll angle to the pitch angel
-  // gyroY -= gyroX * sin(gyroZ * 0.000001066);               //If the IMU has yawed transfer the pitch angle to the roll angel
-  
 
   // X = tilt; Y = roll; Z = pan;
 
-  // Y points UP
-  // Z points FORWARD
-  // X points SIDEWAYS
-  // Roll axis: Z
-  // Y - top
-
-  // tracks if the user held the button for long enough and if he/she did then the gyro center gets reset
+  // tracks the button for long enough and if he/she did then the gyro center gets reset
   int buttonValue = digitalRead(resetButtonPin);
   if (buttonValue == 0) {
     if (button_count == buttonHold) {
@@ -159,6 +143,7 @@ void loop() {
   }
   
   tilt = gyroX * 0.9996 + accTilt * 0.0004 - tilt_center;
+  //tilt = accTilt - tilt_center;
   //roll = gyroY * 0.9996 + accRoll * 0.0004 - roll_center;
   pan = gyroZ - pan_center; 
 
@@ -199,66 +184,16 @@ void loop() {
   if(panReverse){
     pan_servo_pos = map(pan_servo_pos, 0, 180, 180, 0);
   }
-
-  // Sending the formated IMU angles to the servos
-  // tilt_servo.write(tilt_servo_pos);
-  // //if(i == 0){
-  // //tilt_servo.write(90);
-  // //}
-  //pan_servo.write(90);
   
   // Making the values readable to the transmitter by setting them to a specific range
   ppm_tilt = map(tilt_servo_pos, 5, 175, 600, 1600);
   ppm_pan = map(pan_servo_pos, 0, 180, 600, 1600);
 
-  // Yellow : Ring 3 : Ground : Center
-  // Green : Tip : PPM IN : Left
-  // Green Red : Ring 2 : PPM OUT : Right
-
   // Sending the formated IMU angles as PPM values to the flysky transmitter
   ppmEncoder.setChannel(0, ppm_pan);
   ppmEncoder.setChannel(1, ppm_tilt);
 
-  // Debugging by printing the angles out
-  if (i % 20 == 0) {
-  //   Serial.print("GYRO TILT: ");
-  //   Serial.print(gyroX);
-  //   Serial.print(" | ACC TILT: ");
-  //   Serial.print(accTilt);
-  //   Serial.print(" | TILT: ");
-  //   Serial.print(rounded_tilt);
-    Serial.print("TILT: ");
-    Serial.print(tilt_servo_pos);
-    Serial.print(" | PAN: ");
-    Serial.print(pan_servo_pos);
-  //   //Serial.print(" | BUTTON: ");
-  //   //Serial.print(buttonValue);
-  //   //Serial.print(" x: ");
-  //   //Serial.print(gx);
-  //   //Serial.print(" y: ");
-  //   //Serial.print(gy);
-  //   //Serial.print(" z: ");
-  //   //Serial.print(gz);
-  //   // Serial.print("TILT: ");
-  //   // Serial.print(rounded_tilt);
-  //   // Serial.print(" | ROLL: ");
-  //   //Serial.print(rounded_pan);
-  //   Serial.print(" | BUTTON: ");
-  //   Serial.print(buttonValue);
-  //   // Serial.print("X: ");
-  //   // Serial.print(gyroX);
-  //   // Serial.print(" | Y: ");
-  //   // Serial.print(gyroY);
-  //   // Serial.print(" | Z: ");
-  //   // Serial.print(gyroZ);
-    Serial.println();
-  }
-
   i++;                                                                        // add the loop index
-}
-
-void wait(long time) {
-  while (micros() - previousTime < time);
 }
 
 void average() {
